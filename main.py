@@ -1,30 +1,30 @@
-from flask import Flask,jsonify,request
+from flask import Flask, jsonify, request
 import json
 import os
-
-play = True
 
 app = Flask(__name__)
 DATA_FILE = 'data.json'
 
-#Load existing word from JSON File
+
+# Load existing words from JSON file
 def load_words():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE,'r') as data_file:
+        with open(DATA_FILE, 'r') as data_file:
             try:
                 return json.load(data_file)
             except json.JSONDecodeError:
                 return {}
     return {}
 
-#Save updated dictionary to JSON:
+
+# Save updated dictionary to JSON
 def save_words(word_dict):
-    with open(DATA_FILE,'w') as data_file:
-        json.dump(word_dict,data_file,indent=4)
+    with open(DATA_FILE, 'w') as data_file:
+        json.dump(word_dict, data_file, indent=4)
 
-#Add a new word:
-@app.route('/add',methods=['POST'])
 
+# ➕ Add a new word
+@app.route('/add', methods=['POST'])
 def add_word():
     word_dict = load_words()
     data = request.get_json()
@@ -40,26 +40,35 @@ def add_word():
 
     return jsonify({"message": f"'{word}' added successfully!"})
 
-    # 🔍 Search for a word
-    @app.route('/search', methods=['GET'])
-    def search_word():
-        word_dict = load_words()
-        word_to_search = request.args.get('word')
 
-        if not word_to_search:
-            return jsonify({"error": "Please provide a 'word' query parameter"}), 400
+# 🔍 Search for a word
+@app.route('/search', methods=['GET'])
+def search_word():
+    word_dict = load_words()
+    word_to_search = request.args.get('word')
 
-        meaning = word_dict.get(word_to_search)
-        if meaning:
-            return jsonify({word_to_search: meaning})
-        else:
-            return jsonify({"message": "The given word is not in your dictionary. Go ahead and create it!"}), 404
+    if not word_to_search:
+        return jsonify({"error": "Please provide a 'word' query parameter"}), 400
 
-    # 📚 Get all words
-    @app.route('/get_all', methods=['GET'])
-    def get_all():
-        word_dict = load_words()
-        return jsonify(word_dict)
+    meaning = word_dict.get(word_to_search)
+    if meaning:
+        return jsonify({word_to_search: meaning})
+    else:
+        return jsonify({"message": "The given word is not in your dictionary. Go ahead and create it!"}), 404
 
-    if __name__ == '__main__':
-        app.run(debug=True)
+
+# 📚 Get all words
+@app.route('/get_all', methods=['GET'])
+def get_all():
+    word_dict = load_words()
+    return jsonify(word_dict)
+
+
+# 🏠 Optional home route
+@app.route('/')
+def home():
+    return jsonify({"message": "Adap backend is running!"})
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
