@@ -1,53 +1,65 @@
+from flask import Flask,jsonify,request
 import json
 import os
 
 play = True
 
+app = Flask(__name__)
+DATA_FILE = 'data.json'
 
-def main():
-    if os.path.exists('data.json'):
-        with open('data.json','r') as data_file:
-            word_dict = json.load(data_file)
+#Load existing word from JSON File
+def load_words():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE,'r') as data_file:
+            try:
+                return json.load(data_file)
+            except json.JSONDecodeError:
+                return {}
+    return {}
 
-    else:
-        word_dict ={}
+#Save updated dictionary to JSON:
+def save_words(word_dict):
+    with open(DATA_FILE,'w') as data_file:
+        json.dump(word_dict,data_file,indent=4)
 
-    while True:
-        user_word = input('Create a word (or type "stop" to exit): ')
-        if user_word.lower() == 'stop':
-            break
+#Add a new word:
+@app.route('/add',methods=['POST'])
 
-        user_meaning = input("Tell us its meaning: ")
-        word_dict[user_word] = user_meaning
+def add_word():
+    word_dict = load_words()
+    data = request.get_json()
 
-        #save current data to  our file
-        with open('data.json', 'w') as data_file:
-            json.dump(word_dict, data_file, indent=4)
+    word = data.get('word')
+    meaning = data.get('meaning')
 
-def search():
+    if not word or not meaning:
+        return jsonify({"error": "Both 'word' and 'meaning' are required"}), 400
 
+    word_dict[word] = meaning
+    save_words(word_dict)
 
-    with open('data.json','r') as file:
-        data = json.load(file)
+    return jsonify({"message": f"'{word}' added successfully!"})
 
-    #Ask user for the word:
-    words_to_search = input('What word would you like to search?:')
-    if words_to_search in data:
-        print(f"{words_to_search} : {data[words_to_search]}")
-    else:
-        print('The given word is not in your dictionary. Go ahead and create it')
+    # 🔍 Search for a word
+    @app.route('/search', methods=['GET'])
+    def search_word():
+        word_dict = load_words()
+        word_to_search = request.args.get('word')
 
-def start():
-    global play
-    starting_question = input('What would you like to do?: Create or Search:').lower()
-    if starting_question == 'create':
-        main()
-    elif starting_question == 'search':
-        search()
-    elif starting_question =='stop':
-        play = False
-    else:
-        print('please type in correct option')
+        if not word_to_search:
+            return jsonify({"error": "Please provide a 'word' query parameter"}), 400
 
-while play:
- start()
+        meaning = word_dict.get(word_to_search)
+        if meaning:
+            return jsonify({word_to_search: meaning})
+        else:
+            return jsonify({"message": "The given word is not in your dictionary. Go ahead and create it!"}), 404
+
+    # 📚 Get all words
+    @app.route('/get_all', methods=['GET'])
+    def get_all():
+        word_dict = load_words()
+        return jsonify(word_dict)
+
+    if __name__ == '__main__':
+        app.run(debug=True)
