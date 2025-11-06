@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 import json
 import os
 
 app = Flask(__name__)
+CORS(app)
 DATA_FILE = 'data.json'
 
 
@@ -63,6 +65,36 @@ def get_all():
     word_dict = load_words()
     return jsonify(word_dict)
 
+ # Update a word
+@app.route('/update', methods=['PUT'])
+def update_word():
+    word_dict = load_words()
+    data = request.get_json()
+    word = data.get('word')
+    meaning = data.get('meaning')
+
+    if word not in word_dict:
+        return jsonify({"error": "Word not found"}), 404
+
+    word_dict[word] = meaning
+    save_words(word_dict)
+    return jsonify({"message": f"'{word}' updated successfully!"})
+
+
+# ❌ Delete a word
+@app.route('/delete', methods=['DELETE'])
+def delete_word():
+    word_dict = load_words()
+    data = request.get_json()
+    word = data.get('word')
+
+    if word not in word_dict:
+        return jsonify({"error": "Word not found"}), 404
+
+    del word_dict[word]
+    save_words(word_dict)
+    return jsonify({"message": f"'{word}' deleted successfully!"})
+
 
 # 🏠 Optional home route
 @app.route('/')
@@ -72,3 +104,4 @@ def home():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
